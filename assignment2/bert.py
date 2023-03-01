@@ -1,5 +1,3 @@
-bert.py
-
 from typing import Dict, List, Optional, Union, Tuple, Callable
 import math
 import torch
