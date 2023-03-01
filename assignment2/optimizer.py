@@ -62,8 +62,6 @@ class AdamW(Optimizer):
                 
                 state["exp_avg"] = beta1 * state["exp_avg"] + (1 - beta1) * grad
                 state["exp_avg_sq"] = beta2 * state["exp_avg_sq"] + (1 - beta2) * grad.pow(2)
-                bias_correction1 = 1 - beta1 ** state["step"]
-                bias_correction2 = 1 - beta2 ** state["step"]
                 alpha = alpha * math.sqrt((1 - beta2 ** state["step"])) / (1 - beta1 ** state["step"])
                 
                 # Update parameters

@@ -1,3 +1,5 @@
+bert.py
+
 from typing import Dict, List, Optional, Union, Tuple, Callable
 import math
 import torch
@@ -12,14 +14,13 @@ class BertSelfAttention(nn.Module):
     super().__init__()
 
     self.num_attention_heads = config.num_attention_heads
-    self.attention_head_size = int(config.hidden_size / config.num_attention_heads) #64 ?
+    self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
     self.all_head_size = self.num_attention_heads * self.attention_head_size
-    print(self.num_attention_heads , self.attention_head_size,   self.all_head_size)
+
     # initialize the linear transformation layers for key, value, query
-    #768 * 768 ?
-    self.query = nn.Linear(config.hidden_size, self.all_head_size) #(768 * 768)
-    self.key = nn.Linear(config.hidden_size, self.all_head_size) #(768 * 768)
-    self.value = nn.Linear(config.hidden_size, self.all_head_size) #(768 * 768)
+    self.query = nn.Linear(config.hidden_size, self.all_head_size)
+    self.key = nn.Linear(config.hidden_size, self.all_head_size)
+    self.value = nn.Linear(config.hidden_size, self.all_head_size)
     # this attention is applied after calculating the attention score following the original implementation of transformer
     # although it is a bit unusual, we empirically observe that it yields better performance
     self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
@@ -30,9 +31,9 @@ class BertSelfAttention(nn.Module):
     proj = linear_layer(x)
     # next, we need to produce multiple heads for the proj 
     # this is done by spliting the hidden state to self.num_attention_heads, each of size self.attention_head_size
-    proj = proj.view(bs, seq_len, self.num_attention_heads, self.attention_head_size) #(batchSize,seqlength,12,64)
+    proj = proj.view(bs, seq_len, self.num_attention_heads, self.attention_head_size)
     # by proper transpose, we have proj of [bs, num_attention_heads, seq_len, attention_head_size]
-    proj = proj.transpose(1, 2) #(batchSize,num_attention_heads,seqLength,64)
+    proj = proj.transpose(1, 2)
     return proj
 
   def attention(self, key, query, value, attention_mask):
@@ -44,7 +45,6 @@ class BertSelfAttention(nn.Module):
     # Note again: in the attention_mask non-padding tokens with 0 and padding tokens with a large negative number 
     #(batchSize,num_attention_heads,seqLength,64) * (batchSize,num_attention_heads,seqLength,64)
     scores = (query @ key.transpose(-1, -2))/math.sqrt(self.attention_head_size)
-    scores.masked_fill_(attention_mask == 1e4, -1e4);
     scores = scores + attention_mask
     
     # normalize the scores
@@ -136,9 +136,9 @@ class BertModel(BertPreTrainedModel):
     self.config = config
 
     # embedding
-    self.word_embedding = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id) #30522 * 769
-    self.pos_embedding = nn.Embedding(config.max_position_embeddings, config.hidden_size) #512 * 768
-    self.tk_type_embedding = nn.Embedding(config.type_vocab_size, config.hidden_size) #30522 * 769
+    self.word_embedding = nn.Embedding(config.vocab_size, config.hidden_size, padding_idx=config.pad_token_id)
+    self.pos_embedding = nn.Embedding(config.max_position_embeddings, config.hidden_size)
+    self.tk_type_embedding = nn.Embedding(config.type_vocab_size, config.hidden_size)
     self.embed_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
     self.embed_dropout = nn.Dropout(config.hidden_dropout_prob)
     # position_ids (1, len position emb) is a constant, register to buffer
@@ -150,7 +150,7 @@ class BertModel(BertPreTrainedModel):
 
     # for [CLS] token
     self.pooler_dense = nn.Linear(config.hidden_size, config.hidden_size)
-    self.pooler_af = nn.Tanh() #ASK
+    self.pooler_af = nn.Tanh()
 
     self.init_weights()
 
@@ -212,5 +212,6 @@ class BertModel(BertPreTrainedModel):
     first_tk = sequence_output[:, 0]
     first_tk = self.pooler_dense(first_tk)
     first_tk = self.pooler_af(first_tk)
+
     return {'last_hidden_state': sequence_output, 'pooler_output': first_tk}
 
